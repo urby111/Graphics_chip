@@ -1,6 +1,6 @@
 # Graphics Chip
 
-An FPGA graphics project with a Q16.16 vertex transformation and projection
+An FPGA graphics project targeting the **AMD Kria KV260**, with a Q16.16 vertex transformation and projection
 pipeline, framebuffer writes, and display output. The KV260 implementation uses
 the ARM CPU to calculate a matrix and supply vertices in DDR; FPGA logic
 transforms and projects those vertices and writes the resulting pixels.
@@ -98,7 +98,8 @@ stalls, reset, clipping, and controller/memory error handling.
 | `screen/` | Windows frame viewer and font capture previews |
 | `docs/` | Module explanations, design notes and reference material |
 
-The saved `VGA_PROJ.xpr` is the original Basys 3 VGA project; its default top is
+The KV260 is the current hardware target. The saved `VGA_PROJ.xpr` is the legacy
+Basys 3 VGA project; its default top is
 `vga_3colors`. It is separate from the KV260 project. Some earlier design notes
 describe previous milestones or proposed functionality; use this README and
 `kv260/STATUS.md` for the current overall scope.
