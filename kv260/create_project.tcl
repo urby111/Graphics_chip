@@ -1,13 +1,11 @@
-# Vivado 2023.1. Build an independent KV260 project; the Basys3 project is untouched.
+# Vivado 2023.1. Build the complete KV260 hardware project separately from the RTL view.
 set here [file dirname [file normalize [info script]]]
 set repo [file dirname $here]
 set out [file join $here build]
 create_project kv260_gpu $out -part xck26-sfvc784-2LV-c -force
 set_property board_part xilinx.com:kv260_som:part0:1.4 [current_project]
-add_files [glob [file join $here rtl *.v]]
-foreach name {Matrix_Vertex Screen_Position Framebuffer_Write} {
- add_files [file join $repo VGA_PROJ.srcs sources_1 new ${name}.v]
-}
+source [file join $here graphics_sources.tcl]
+add_files $kv260_graphics_sources
 create_bd_design system
 set ps [create_bd_cell -type ip -vlnv xilinx.com:ip:zynq_ultra_ps_e:3.5 ps]
 apply_bd_automation -rule xilinx.com:bd_rule:zynq_ultra_ps_e -config {apply_board_preset "1"} $ps
