@@ -25,6 +25,7 @@ module Screen_Position (
     localparam DIV_BITS = 33;
     reg [36:0] valid_pipe;
     wire advance = !valid_pipe[36] || out_ready;
+
     assign in_ready = !rst && advance;
     assign out_valid = valid_pipe[36];
     assign busy = |valid_pipe;
@@ -71,6 +72,7 @@ module Screen_Position (
         wire [32:0] trial_y = {remainder_y[stage], numerator_y[stage][32]};
         wire [32:0] diff_x = trial_x - {1'b0, divisor[stage]};
         wire [32:0] diff_y = trial_y - {1'b0, divisor[stage]};
+
         always @(posedge clk) begin
             if (!rst && advance) begin
                 numerator_x[stage+1] <= {numerator_x[stage][31:0], 1'b0};
@@ -89,13 +91,15 @@ module Screen_Position (
                 depth_pipe[stage+1] <= depth_pipe[stage];
             end
         end
-    end endgenerate
+    end
+    endgenerate
 
     reg signed [33:0] offset_x, offset_y, pixel_x, pixel_y;
     wire coordinate_overflow = (pixel_x[33:31] != {3{pixel_x[33]}}) ||
                                (pixel_y[33:31] != {3{pixel_y[33]}});
     always @(posedge clk) begin
         if (!rst && advance) begin
+
             // Stage 34: floor(2*X/W), floor(-2*Y/W), including signed minima.
             offset_x <= negative_x[33] ?
                 -$signed({1'b0, quotient_x[33]}) -
@@ -105,15 +109,21 @@ module Screen_Position (
                 -$signed({1'b0, quotient_y[33]}) -
                     ((remainder_y[33] != 0) ? 34'sd1 : 34'sd0) :
                 $signed({1'b0, quotient_y[33]});
-            rejected[34] <= rejected[33]; selected[34] <= selected[33];
-            width_pipe[34] <= width_pipe[33]; height_pipe[34] <= height_pipe[33];
+            rejected[34] <= rejected[33];
+            selected[34] <= selected[33];
+            width_pipe[34] <= width_pipe[33];
+            height_pipe[34] <= height_pipe[33];
             depth_pipe[34] <= depth_pipe[33];
+
             // Stage 35: centre and convert half-pixel units to whole pixels.
             pixel_x <= (offset_x + $signed({18'b0, width_pipe[34]})) >>> 1;
             pixel_y <= (offset_y + $signed({18'b0, height_pipe[34]})) >>> 1;
-            rejected[35] <= rejected[34]; selected[35] <= selected[34];
-            width_pipe[35] <= width_pipe[34]; height_pipe[35] <= height_pipe[34];
+            rejected[35] <= rejected[34];
+            selected[35] <= selected[34];
+            width_pipe[35] <= width_pipe[34];
+            height_pipe[35] <= height_pipe[34];
             depth_pipe[35] <= depth_pipe[34];
+
             // Stage 36: output and point bounds check. Never wrap coordinates.
             x2d <= (rejected[35] || coordinate_overflow) ? 32'sd0 : pixel_x[31:0];
             y2d <= (rejected[35] || coordinate_overflow) ? 32'sd0 : pixel_y[31:0];
@@ -123,7 +133,8 @@ module Screen_Position (
                 (pixel_x < $signed({18'b0, width_pipe[35]})) &&
                 (pixel_y < $signed({18'b0, height_pipe[35]}));
             out_depth <= depth_pipe[35];
-            out_width <= width_pipe[35]; out_height <= height_pipe[35];
+            out_width <= width_pipe[35];
+            out_height <= height_pipe[35];
             out_buffer_select <= selected[35];
         end
     end

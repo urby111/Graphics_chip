@@ -26,6 +26,7 @@ module Framebuffer_Write (
     reg good_0, good_1, good_2, good_3;
     reg selected_0, selected_1, selected_2, selected_3;
     wire advance = !valid_pipe[3] || !good_3 || wr_ready;
+
     assign in_ready = !rst && advance;
     assign wr_valid = !rst && valid_pipe[3] && good_3;
     assign dropped = !rst && valid_pipe[3] && !good_3;
@@ -45,6 +46,7 @@ module Framebuffer_Write (
         if (rst) valid_pipe <= 4'b0;
         else if (advance) begin
             valid_pipe <= {valid_pipe[2:0], in_valid && in_ready};
+
             // Stage 0: products and validation. Signed negatives cannot write.
             row_bytes_0 <= $unsigned(y2d) * stride_bytes;
             column_bytes_0 <= {30'b0, x2d, 2'b0};
@@ -60,17 +62,23 @@ module Framebuffer_Write (
                 (stride_bytes >= {14'b0, screen_width, 2'b0}) &&
                 (stride_bytes[1:0] == 0) && (buffer_a_offset[1:0] == 0) &&
                 (buffer_b_offset[1:0] == 0);
+
             // Stage 1: allocation ends and offset within the selected buffer.
             end_a_1 <= a_0 + allocation_bytes_0;
             end_b_1 <= b_0 + allocation_bytes_0;
             pixel_offset_1 <= row_bytes_0 + column_bytes_0;
-            a_1 <= a_0; b_1 <= b_0; region_1 <= region_0;
-            selected_1 <= selected_0; good_1 <= good_0;
+            a_1 <= a_0;
+            b_1 <= b_0;
+            region_1 <= region_0;
+            selected_1 <= selected_0;
+            good_1 <= good_0;
+
             // Stage 2: allow only distinct, non-overlapping, in-region buffers.
             address_2 <= (selected_1 ? b_1 : a_1) + pixel_offset_1;
             good_2 <= good_1 && (end_a_1 <= region_1) && (end_b_1 <= region_1) &&
                       ((end_a_1 <= b_1) || (end_b_1 <= a_1));
             selected_2 <= selected_1;
+
             // Stage 3: full write transaction held stable until acknowledged.
             good_3 <= good_2 && (address_2[63:32] == 0);
             address_3 <= address_2[31:0];
