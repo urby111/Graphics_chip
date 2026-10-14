@@ -1,0 +1,26 @@
+# Edit this file and rerun verilator/run_gpu_demo.ps1.
+# Positions are real units; rotations below are PITCH YAW ROLL in degrees.
+camera 0 0 0   0 0 0
+object 0 0 6   20 30 0
+# Focal length in pixels, then near distance.
+view 320 1
+
+# A cube represented by sampled edge points, not filled triangles.
+# edge: start XYZ, end XYZ, number of evenly spaced vertices.
+edge -1 -1 -1   1 -1 -1   129
+edge  1 -1 -1   1  1 -1   129
+edge  1  1 -1  -1  1 -1   129
+edge -1  1 -1  -1 -1 -1   129
+edge -1 -1  1   1 -1  1   129
+edge  1 -1  1   1  1  1   129
+edge  1  1  1  -1  1  1   129
+edge -1  1  1  -1 -1  1   129
+edge -1 -1 -1  -1 -1  1   129
+edge  1 -1 -1   1 -1  1   129
+edge  1  1 -1   1  1  1   129
+edge -1  1 -1  -1  1  1   129
+
+# For just a few individual points, replace the edges with lines such as:
+# vertex -1 -1 0
+# vertex  1 -1 0
+# vertex  0  1 0

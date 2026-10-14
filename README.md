@@ -1,0 +1,107 @@
+# Graphics Chip
+
+An FPGA graphics project with a Q16.16 vertex transformation and projection
+pipeline, framebuffer writes, and display output. The KV260 implementation uses
+the ARM CPU to calculate a matrix and supply vertices in DDR; FPGA logic
+transforms and projects those vertices and writes the resulting pixels.
+
+The current hardware demo renders a static red cube at 640x480 through the
+KV260 carrier's HDMI connector. The CPU samples the cube edges into points;
+the FPGA currently renders those points. Filled triangles, depth testing and
+animation/page flips are not integrated into this hardware demo.
+
+## Pipeline
+
+```text
+ARM CPU: camera/object/view matrix + XYZ vertices
+    -> DDR -> KV260 AXI controller
+    -> Matrix_Vertex -> Screen_Position -> Framebuffer_Write
+    -> DDR framebuffer -> PS display controller / DPDMA -> HDMI
+```
+
+- Signed Q16.16 matrix and vertex data.
+- Wide intermediate arithmetic, saturation and overflow flags; overflowed
+  vertices are rejected before framebuffer writes.
+- Valid/ready flow control between graphics stages.
+- AXI-Lite control and DDR access on KV260.
+- Separate simulation demo with local double buffering and VGA scanout.
+- Standalone line and triangle rasterizers with their own tests.
+
+## Run the simulation
+
+Use PowerShell on Windows with Ubuntu WSL, GCC, GNU Make and Verilator installed.
+Run commands from the repository root:
+
+```powershell
+.\verilator\run_gpu_demo.ps1
+```
+
+This builds the C scene generator and HDL simulation, checks the captured VGA
+pixels against an independent fixed-point reference, and writes
+`verilator/gpu_demo/gpu_frame.bmp` and `gpu_frame.hex`. Edit `demo_scene.txt` to
+change the camera, object or geometry. See [the simulation demo](docs/gpu_pipeline.md).
+
+For an interactive Windows viewer, build `screen/vga_screen.exe` using the
+instructions in [screen/README.md](screen/README.md), then run:
+
+```powershell
+.\verilator\run_gpu_demo.ps1 -View
+```
+
+## Build and run on KV260
+
+Requires a powered KV260, USB JTAG, an HDMI monitor, Vivado 2023.1 with K26/KV260
+support, and Ubuntu 24.04 WSL. The default Vivado location is
+`C:/Xilinx/Vivado/2023.1`; the compact CPU build also uses driver sources there.
+
+```powershell
+.\kv260\run.ps1 hardware
+.\kv260\run.ps1 software
+.\kv260\run.ps1 load
+```
+
+The hardware project is recreated by `kv260/create_project.tcl`. The software
+step downloads a project-local ARM compiler when needed. The load step resets
+and programs the connected board temporarily over JTAG, initializes DDR and
+starts the CPU application. It does not program flash or an SD card.
+
+See [KV260 setup and register interface](kv260/README.md) for requirements,
+memory ownership, build options and diagnostics. [Bring-up status](kv260/STATUS.md)
+records the existing hardware results, including timing closure and a visible
+cube. Those results describe the recorded run, not a continuous hardware test.
+
+## Tests
+
+```powershell
+.\verilator\test_matrix_vertex.ps1
+.\verilator\test_point_pipeline.ps1
+.\verilator\test_rasterizers.ps1
+.\verilator\test_projector.ps1
+.\verilator\test_sin_cos.ps1
+.\kv260\test.ps1
+```
+
+The tests cover arithmetic and overflow, independent expected pixel results,
+stalls, reset, clipping, and controller/memory error handling.
+
+## Source map
+
+| Location | Contents |
+| --- | --- |
+| `VGA_PROJ.srcs/sources_1/new/` | Graphics RTL and original VGA display |
+| `VGA_PROJ.srcs/sim_1/new/` | Verilog testbenches and pipeline test wrapper |
+| `VGA_PROJ.srcs/constrs_1/new/` | Original Basys 3 pin constraints |
+| `gpu_matrices.c`, `demo_scene.txt` | Host matrix calculator and simulation scene |
+| `kv260/rtl/` | KV260 controller and AXI interfaces |
+| `kv260/software/`, `kv260/small/` | CPU/display sources and compact build/runtime |
+| `kv260/tests/`, `verilator/` | Controller and graphics simulation tests |
+| `screen/` | Windows frame viewer and font capture previews |
+| `docs/` | Module explanations, design notes and reference material |
+
+The saved `VGA_PROJ.xpr` is the original Basys 3 VGA project; its default top is
+`vga_3colors`. It is separate from the KV260 project. Some earlier design notes
+describe previous milestones or proposed functionality; use this README and
+`kv260/STATUS.md` for the current overall scope.
+
+Vivado output, compiled executables, simulation build directories and the ARM
+toolchain are excluded from version control. Rebuild them using the scripts.

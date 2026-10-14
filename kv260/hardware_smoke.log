@@ -1,0 +1,4 @@
+ECHO is off.
+ECHO is off.
+PASS: hardware DDR matrix/vertex fetch, 3 transformed points, 3 red pixel writes and DONE.
+CPU is halted; this diagnostic does not test the CPU program or HDMI.
